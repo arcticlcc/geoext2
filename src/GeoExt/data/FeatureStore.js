@@ -14,6 +14,9 @@
 /**
  * @class GeoExt.data.FeatureStore
  * A store that synchronizes a features array of an ``OpenLayers.Layer.Vector``.
+ *
+ * Temporary fix for sync problem. This version taken from
+ * https://github.com/lvonlanthen/geoext2/blob/b14e9cfe2a395ba9c05a52e284122cceb77387b8/src/GeoExt/data/FeatureStore.js
  */
 Ext.define('GeoExt.data.FeatureStore', {
     extend: 'Ext.data.Store',
@@ -262,7 +265,7 @@ Ext.define('GeoExt.data.FeatureStore', {
      * @param {Object} evt
      */
     onFeaturesAdded: function(evt) {
-         if (!this._adding) {
+        if (!this._adding) {
             var features = evt.features, toAdd = features;
             if (this.featureFilter) {
                 toAdd = [];
@@ -325,12 +328,18 @@ Ext.define('GeoExt.data.FeatureStore', {
      */
     onLoad: function(store, records, successful) {
         if (successful) {
-            this._removing = true;
-            this.layer.removeAllFeatures();
-            delete this._removing;
-
-            this.addFeaturesToLayer(records);
+            if (!this._addRecords) {
+                this._removing = true;
+                this.layer.removeAllFeatures();
+                delete this._removing;
+            }
+            if (!this._adding) {
+                this._adding = true;
+                this.addFeaturesToLayer(records);
+                delete this._adding;
+            }
         }
+        delete this._addRecords;
     },
 
     /**
@@ -379,12 +388,14 @@ Ext.define('GeoExt.data.FeatureStore', {
 
     /**
      * Handler for a store's update event
+     * Removed dependency on getModifiedFieldNames, it's not
+     * supported in 4.0.7.
      * @private
      * @param {Ext.data.Store} store
      * @param {Ext.data.Model} record
      * @param {Number} operation
      */
-    onUpdate: function(store, record, operation, modifiedFieldNames) {
+    onUpdate: function(store, record, operation) {
         if (!this._updating) {
             var feature = record.raw;
             if (feature.state !== OpenLayers.State.INSERT) {
@@ -394,7 +405,9 @@ Ext.define('GeoExt.data.FeatureStore', {
                 feature: feature
             });
             if (cont !== false) {
-                Ext.Array.each(modifiedFieldNames, function(field) {
+                //no support for getModifiedFieldNames
+                //so we just set all attributes
+                Ext.Object.each(record.data, function(field) {
                     feature.attributes[field] = record.get(field);
                 });
                 this._updating = true;
@@ -404,5 +417,12 @@ Ext.define('GeoExt.data.FeatureStore', {
                 delete this._updating;
             }
         }
+    },
+
+    loadRecords: function(records, options) {
+        if (options && options.addRecords) {
+            this._addRecords = true;
+        }
+        this.callParent(arguments);
     }
 });

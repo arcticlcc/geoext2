@@ -16,6 +16,11 @@
 /**
  * @class GeoExt.selection.FeatureModel
  *
+ *TODO: Remove when upgrading to ExtJS v4.1
+ *
+ * This version has been modfied to work with ExtJS v4.0.7
+ * In 4.1 the {Ext.selection.Model#bind} method is renamed to bindStore.
+ *
  * A row selection model which enables automatic selection of features
  * in the map when rows are selected in the grid and vice-versa.
  *
@@ -140,7 +145,7 @@ Ext.define('GeoExt.selection.FeatureModel', {
             }
         }
         if (this.selectControl) {
-            this.bind(this.selectControl);
+            this.bindModel(this.selectControl);
         }
     },
 
@@ -178,7 +183,7 @@ Ext.define('GeoExt.selection.FeatureModel', {
      * @return {OpenLayers.Control.SelectFeature}
      * The select feature control this selection model uses.
      */
-    bind: function(obj, options) {
+    bindModel: function(obj, options) {
         if (!this.bound) {
             options = options || {};
             this.selectControl = obj;
